@@ -5,3 +5,4 @@ src/
 *.pkg.tar.xz
 # bare clone cache (created by makepkg for git sources)
 hypr-wallpaper/
+.SRCINFO
