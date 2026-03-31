@@ -1,12 +1,14 @@
 PREFIX  ?= $(HOME)/.local
 CONFDIR ?= $(HOME)/.config/hypr-wallpaper
-AUR_DIR ?= $(HOME)/aur/hypr-wallpaper-git
 
 CURRENT_TAG := $(shell git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)
 CURRENT_VER := $(CURRENT_TAG:v%=%)
 MAJOR := $(word 1,$(subst ., ,$(CURRENT_VER)))
 MINOR := $(word 2,$(subst ., ,$(CURRENT_VER)))
 PATCH := $(word 3,$(subst ., ,$(CURRENT_VER)))
+
+AUR_PKG  := hypr-wallpaper-git
+AUR_REPO := ssh://aur@aur.archlinux.org/$(AUR_PKG).git
 
 install: install-bin install-config
 
@@ -34,16 +36,18 @@ release-patch: _release ## Bump patch version (1.2.3 → 1.2.4)
 
 _release:
 	@test -z "$$(git status --porcelain)" || { echo "Error: working tree not clean — commit first"; exit 1; }
-	@test -d "$(AUR_DIR)/.git" || { echo "Error: AUR repo not found at $(AUR_DIR)"; exit 1; }
 	@echo "==> $(CURRENT_VER) → $(V)"
 	git tag v$(V)
 	git push && git push --tags
 	@echo "==> Updating AUR..."
-	cp PKGBUILD $(AUR_DIR)/PKGBUILD
-	cd $(AUR_DIR) && makepkg --printsrcinfo > .SRCINFO && \
+	$(eval _TMP := $(shell mktemp -d))
+	git clone $(AUR_REPO) $(_TMP)
+	cp PKGBUILD $(_TMP)/PKGBUILD
+	cd $(_TMP) && makepkg --printsrcinfo > .SRCINFO && \
 		git add PKGBUILD .SRCINFO && \
 		git commit -m "Update to $(V)" && \
 		git push origin HEAD:master
+	rm -rf $(_TMP)
 	@echo "==> Released v$(V)"
 
 .PHONY: install install-bin install-config uninstall release-major release-minor release-patch _release
