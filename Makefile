@@ -2,6 +2,12 @@ PREFIX  ?= $(HOME)/.local
 CONFDIR ?= $(HOME)/.config/hypr-wallpaper
 AUR_DIR ?= $(HOME)/aur/hypr-wallpaper-git
 
+CURRENT_TAG := $(shell git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)
+CURRENT_VER := $(CURRENT_TAG:v%=%)
+MAJOR := $(word 1,$(subst ., ,$(CURRENT_VER)))
+MINOR := $(word 2,$(subst ., ,$(CURRENT_VER)))
+PATCH := $(word 3,$(subst ., ,$(CURRENT_VER)))
+
 install: install-bin install-config
 
 install-bin:
@@ -17,11 +23,19 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/hypr-wallpaper
 	rm -f $(DESTDIR)$(PREFIX)/bin/hypr-wallpaper-menu
 
-release: ## Tag, push, and publish to AUR (make release V=x.y.z)
-	@test -n "$(V)" || { echo "Usage: make release V=1.1.0"; exit 1; }
+release-major: V=$(shell echo $$(($(MAJOR)+1))).0.0
+release-major: _release ## Bump major version (1.2.3 → 2.0.0)
+
+release-minor: V=$(MAJOR).$(shell echo $$(($(MINOR)+1))).0
+release-minor: _release ## Bump minor version (1.2.3 → 1.3.0)
+
+release-patch: V=$(MAJOR).$(MINOR).$(shell echo $$(($(PATCH)+1)))
+release-patch: _release ## Bump patch version (1.2.3 → 1.2.4)
+
+_release:
 	@test -z "$$(git status --porcelain)" || { echo "Error: working tree not clean — commit first"; exit 1; }
 	@test -d "$(AUR_DIR)/.git" || { echo "Error: AUR repo not found at $(AUR_DIR)"; exit 1; }
-	@echo "==> Tagging v$(V)..."
+	@echo "==> $(CURRENT_VER) → $(V)"
 	git tag v$(V)
 	git push && git push --tags
 	@echo "==> Updating AUR..."
@@ -32,4 +46,4 @@ release: ## Tag, push, and publish to AUR (make release V=x.y.z)
 		git push origin HEAD:master
 	@echo "==> Released v$(V)"
 
-.PHONY: install install-bin install-config uninstall release
+.PHONY: install install-bin install-config uninstall release-major release-minor release-patch _release
