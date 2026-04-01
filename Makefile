@@ -4,7 +4,7 @@ CONFDIR ?= $(HOME)/.config/hypr-wallpaper
 AUR_PKG  := hypr-wallpaper-git
 AUR_REPO := ssh://aur@aur.archlinux.org/$(AUR_PKG).git
 
-include hypr-tui/release.mk
+-include hypr-tui/release.mk
 
 install: install-bin install-config
 
