@@ -767,6 +767,14 @@ do_dislike() {
     do_next
 }
 
+do_unrate() {
+    local name
+    name=$(current_basename)
+    [ -z "$name" ] && return
+    db_set_status "$name" "unrated"
+    notify-send -u low "Wallpaper" "Set to unrated"
+}
+
 do_source() {
     local name
     name=$(current_basename)
@@ -885,11 +893,12 @@ case "${1:-menu}" in
     fetch)   do_fetch ;;
     like)    do_like ;;
     dislike) do_dislike ;;
+    unrate)  do_unrate ;;
     source)  do_source ;;
     mode)    do_toggle_mode ;;
     restore) do_restore ;;
     fill)    do_fill_monitors ;;
     set)     [ -f "$2" ] && { local c; c=$(current_file); [ -n "$c" ] && [ -f "$c" ] && history_push "$c"; set_wallpaper "$2"; } ;;
     watch)   do_watch ;;
-    *)       echo "Usage: hypr-wallpaper {menu|next|prev|fetch|like|dislike|source|mode|set|restore|fill|watch}" ;;
+    *)       echo "Usage: hypr-wallpaper {menu|next|prev|fetch|like|dislike|unrate|source|mode|set|restore|fill|watch}" ;;
 esac

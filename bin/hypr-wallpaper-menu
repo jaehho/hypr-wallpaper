@@ -27,7 +27,7 @@ DATADIR = os.path.expanduser("~/.cache/wallpaper-data")
 DBFILE = f"{DATADIR}/wallpapers.db"
 STATEFILE = f"{DATADIR}/current"
 MODEFILE = f"{DATADIR}/mode"
-WP_CMD = os.path.expanduser("~/.local/bin/hypr-wallpaper")
+WP_CMD = "hypr-wallpaper"
 CONFDIR = os.path.expanduser(
     os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
     + "/hypr-wallpaper"
@@ -40,7 +40,14 @@ LOGFILE = f"{DATADIR}/hypr-wallpaper.log"
 
 
 def wp_cmd(*args):
+    """Run command and wait (for instant ops like like/dislike)."""
     subprocess.run([WP_CMD] + list(args), capture_output=True, text=True)
+
+
+def wp_cmd_bg(*args):
+    """Run command in background (for slow ops like next/fetch)."""
+    subprocess.Popen([WP_CMD] + list(args),
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def db_query(sql):
@@ -175,17 +182,20 @@ def text_input(stdscr, y, x, w, prompt, initial=""):
 def view_main(stdscr, state):
     mode = state["mode"]
     icon = STATUS_ICONS.get(state["status"], "")
+    status = state["status"]
     if mode == "explore":
         items = [
             ("\uf051", "Next"), ("\uf048", "Prev"),
-            ("\uf004", "Like"), ("\uf00d", "Dislike"),
+            ("\uf004", "Unlike" if status == "liked" else "Like"),
+            ("\uf00d", "Undo dislike" if status == "disliked" else "Dislike"),
             ("\uf021", "Switch to liked mode"),
             ("\uf0c1", "Open source"), ("\uf013", "Settings"),
         ]
     else:
         items = [
             ("\uf051", "Next liked"), ("\uf048", "Prev"),
-            ("\uf03e", "Browse liked"), ("\uf00d", "Dislike"),
+            ("\uf03e", "Browse liked"),
+            ("\uf00d", "Undo dislike" if status == "disliked" else "Dislike"),
             ("\uf021", "Switch to explore mode"),
             ("\uf0c1", "Open source"), ("\uf013", "Settings"),
         ]
@@ -828,11 +838,13 @@ def main(stdscr):
         if action is None:
             break
         elif action in ("Next", "Next liked"):
-            wp_cmd("next")
+            wp_cmd_bg("next")
         elif action == "Prev":
-            wp_cmd("prev")
+            wp_cmd_bg("prev")
         elif action == "Like":
             wp_cmd("like")
+        elif action in ("Unlike", "Undo dislike"):
+            wp_cmd("unrate")
         elif action == "Dislike":
             wp_cmd("dislike")
         elif action.startswith("Switch to"):
